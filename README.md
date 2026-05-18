@@ -101,4 +101,4 @@ The score is a weighted average of three signals:
 
 ## License
 
-MIT © [Sundar Sasi](https://github.com/Sasisundar2211)
+MIT © [Sasi Sundar](https://github.com/Sasisundar2211)
