@@ -14,7 +14,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({error: 'Missing email'}, {status: 400})
   }
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://vouqis.vercel.app'
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? ''
   const productId = process.env.POLAR_PRODUCT_ID!
 
   try {

@@ -83,7 +83,7 @@ export async function POST(request: NextRequest) {
     return Response.json({error: error?.message ?? 'Insert failed'}, {status: 500})
   }
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://vouqis.vercel.app'
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? ''
   const reportUrl = `${appUrl}/report/${data.id}`
 
   return Response.json({id: data.id, reportUrl})
