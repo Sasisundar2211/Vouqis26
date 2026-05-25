@@ -38,13 +38,24 @@ export async function POST(request: NextRequest) {
 
     console.log('[stripe/webhook] subscription.created', {id: sub.id, email})
 
-    const {data: existing} = await supabaseAdmin
+    // Look up by email first (covers upgrades from Polar era rows)
+    const {data: existingByEmail} = await supabaseAdmin
       .from('subscriptions')
       .select('api_key')
-      .eq('stripe_subscription_id', sub.id)
+      .eq('email', email)
       .single()
 
-    const rawKey = existing?.api_key ?? crypto.randomBytes(32).toString('hex')
+    // Fall back to stripe_subscription_id lookup for idempotency on retries
+    const {data: existingBySub} = !existingByEmail
+      ? await supabaseAdmin
+          .from('subscriptions')
+          .select('api_key')
+          .eq('stripe_subscription_id', sub.id)
+          .single()
+      : {data: null}
+
+    const rawKey =
+      existingByEmail?.api_key ?? existingBySub?.api_key ?? crypto.randomBytes(32).toString('hex')
 
     const {error} = await supabaseAdmin.from('subscriptions').upsert(
       {
@@ -55,7 +66,7 @@ export async function POST(request: NextRequest) {
         plan: 'pro',
         api_key: rawKey,
       },
-      {onConflict: 'stripe_subscription_id'},
+      {onConflict: 'email'},
     )
 
     if (error) {
