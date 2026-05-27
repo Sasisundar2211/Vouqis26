@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/table'
 import {Card, CardContent, CardHeader, CardTitle} from '@/components/ui/card'
 import {Badge} from '@/components/ui/badge'
+import {FreePlanBanner} from '@/components/FreePlanBanner'
 
 interface Trace {
   id: string
@@ -61,26 +62,46 @@ export default function TracesPage() {
   const [traces, setTraces] = useState<Trace[]>([])
   const [loading, setLoading] = useState(true)
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
+  const [urlFilter, setUrlFilter] = useState('')
+  const [statusFilter, setStatusFilter] = useState<'all' | 'success' | 'error'>('all')
 
   const fetchTraces = useCallback(async () => {
-    const {data, error} = await supabase
+    let query = supabase
       .from('traces')
       .select('*')
       .order('created_at', {ascending: false})
       .limit(50)
+
+    if (urlFilter) query = query.ilike('server_url', `%${urlFilter}%`)
+    if (statusFilter === 'success') query = query.eq('success', true)
+    else if (statusFilter === 'error') query = query.eq('success', false)
+
+    const {data, error} = await query
 
     if (!error && data) {
       setTraces(data)
       setLastUpdated(new Date())
     }
     setLoading(false)
-  }, [])
+  }, [urlFilter, statusFilter])
 
   useEffect(() => {
-    const initial = setTimeout(() => { void fetchTraces() }, 0)
-    const interval = setInterval(() => { void fetchTraces() }, 10_000)
-    return () => { clearTimeout(initial); clearInterval(interval) }
+    const initial = setTimeout(() => {
+      void fetchTraces()
+    }, 0)
+    const interval = setInterval(() => {
+      void fetchTraces()
+    }, 10_000)
+    return () => {
+      clearTimeout(initial)
+      clearInterval(interval)
+    }
   }, [fetchTraces])
+
+  const clearFilters = () => {
+    setUrlFilter('')
+    setStatusFilter('all')
+  }
 
   return (
     <main className="min-h-screen bg-background p-6">
@@ -98,6 +119,35 @@ export default function TracesPage() {
             <span className="text-xs text-muted-foreground">
               Updated {timeAgo(lastUpdated.toISOString())}
             </span>
+          )}
+        </div>
+
+        <FreePlanBanner />
+
+        <div className="flex flex-wrap gap-2 items-center">
+          <input
+            type="text"
+            placeholder="Filter by server URL…"
+            value={urlFilter}
+            onChange={(e) => setUrlFilter(e.target.value)}
+            className="h-8 rounded-md border bg-background px-3 text-xs font-mono w-64 focus:outline-none focus:ring-1 focus:ring-ring"
+          />
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)}
+            className="h-8 rounded-md border bg-background px-2 text-xs focus:outline-none focus:ring-1 focus:ring-ring"
+          >
+            <option value="all">All statuses</option>
+            <option value="success">✓ Success</option>
+            <option value="error">✗ Error</option>
+          </select>
+          {(urlFilter || statusFilter !== 'all') && (
+            <button
+              onClick={clearFilters}
+              className="h-8 px-3 text-xs rounded-md border border-red-500/30 text-red-500 hover:bg-red-500/10 transition-colors"
+            >
+              Clear filters
+            </button>
           )}
         </div>
 
