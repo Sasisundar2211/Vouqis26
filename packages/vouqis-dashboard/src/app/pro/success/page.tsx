@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import {SetProPlan} from '@/components/SetProPlan'
 
 export default function ProSuccessPage() {
   return (
@@ -6,6 +7,7 @@ export default function ProSuccessPage() {
       style={{backgroundColor: '#0d0d0d', color: '#e2e8f0'}}
       className="min-h-screen flex items-center justify-center px-4"
     >
+      <SetProPlan />
       <div className="max-w-md w-full text-center space-y-6">
         <p className="text-5xl">✓</p>
         <div className="space-y-2">

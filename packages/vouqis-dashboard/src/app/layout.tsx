@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import Link from "next/link";
+import {PlanBadge} from "@/components/PlanBadge";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -52,12 +53,12 @@ export default function RootLayout({
               Dashboard
             </Link>
             <Link
-              href="/pro"
-              className="ml-auto text-sm transition-colors"
-              style={{color: '#4ade80', fontWeight: 700}}
+              href="/evals"
+              className="text-sm text-muted-foreground hover:text-foreground transition-colors"
             >
-              Get Pro · $9/mo →
+              Audits
             </Link>
+            <PlanBadge />
           </nav>
         </header>
         {children}
