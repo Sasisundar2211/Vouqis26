@@ -3,39 +3,79 @@ import {SetProPlan} from '@/components/SetProPlan'
 
 export default function ProSuccessPage() {
   return (
-    <main
-      style={{backgroundColor: '#0d0d0d', color: '#e2e8f0'}}
-      className="min-h-screen flex items-center justify-center px-4"
-    >
+    <main className="min-h-screen bg-background flex items-center justify-center px-4">
       <SetProPlan />
-      <div className="max-w-md w-full text-center space-y-6">
-        <p className="text-5xl">✓</p>
-        <div className="space-y-2">
-          <h1 className="text-2xl font-bold font-mono" style={{color: '#4ade80'}}>
+      <div className="max-w-md w-full space-y-8">
+
+        {/* Confirmation */}
+        <div className="space-y-1">
+          <p className="text-xs text-muted-foreground font-mono uppercase tracking-widest">
+            Vouqis Pro
+          </p>
+          <h1 className="text-2xl font-semibold tracking-tight">
             You&apos;re on Pro
           </h1>
-          <p className="text-sm" style={{color: '#94a3b8'}}>
-            Your subscription is active. Run unlimited audits and share private reports with your team.
+          <p className="text-sm text-muted-foreground">
+            Your subscription is active. Your API key was sent to the email you used at checkout — check your inbox.
           </p>
         </div>
-        <div
-          className="rounded-lg border p-5 text-left space-y-2"
-          style={{backgroundColor: '#0f172a', borderColor: '#1e293b'}}
-        >
-          <p className="text-xs font-mono uppercase tracking-widest" style={{color: '#64748b'}}>
-            Next step
+
+        {/* Step 1 — Install */}
+        <div className="space-y-2">
+          <p className="text-xs font-medium text-muted-foreground uppercase tracking-widest">
+            Step 1 — Install
           </p>
-          <p className="font-mono text-sm" style={{color: '#e2e8f0'}}>
-            npm install -g @vouqis/cli &amp;&amp; vouqis audit &lt;your-mcp-url&gt;
+          <div className="bg-muted rounded-lg px-4 py-3">
+            <pre className="text-xs font-mono text-foreground overflow-x-auto">npm install -g vouqis</pre>
+          </div>
+        </div>
+
+        {/* Step 2 — Activate */}
+        <div className="space-y-2">
+          <p className="text-xs font-medium text-muted-foreground uppercase tracking-widest">
+            Step 2 — Activate Pro (from the email you received)
+          </p>
+          <div className="bg-muted rounded-lg px-4 py-3 space-y-1">
+            <pre className="text-xs font-mono text-foreground overflow-x-auto leading-relaxed">{`export VOUQIS_API_KEY=your-key-here`}</pre>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Add to <code className="font-mono">~/.zshrc</code> (or <code className="font-mono">~/.bashrc</code>) to persist across sessions.
+            For CI, add it as a secret named <code className="font-mono">VOUQIS_API_KEY</code>.
           </p>
         </div>
+
+        {/* Step 3 — Run */}
+        <div className="space-y-2">
+          <p className="text-xs font-medium text-muted-foreground uppercase tracking-widest">
+            Step 3 — Run an audit
+          </p>
+          <div className="bg-muted rounded-lg px-4 py-3">
+            <pre className="text-xs font-mono text-foreground overflow-x-auto">vouqis audit &lt;your-mcp-server-url&gt;</pre>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Reports are kept for 90 days. The CLI will confirm Pro is active.
+          </p>
+        </div>
+
+        {/* Lost key note */}
+        <p className="text-xs text-muted-foreground border-t pt-4">
+          Didn&apos;t get the email? Check spam, or{' '}
+          <a
+            href="mailto:hello@vouqis.tech?subject=Resend%20my%20API%20key"
+            className="underline underline-offset-2 hover:text-foreground transition-colors"
+          >
+            email us
+          </a>{' '}
+          and we&apos;ll resend it.
+        </p>
+
         <Link
-          href="/"
-          className="inline-block text-sm font-mono underline"
-          style={{color: '#60a5fa'}}
+          href="/evals"
+          className="inline-block text-sm text-muted-foreground hover:text-foreground transition-colors underline underline-offset-2"
         >
-          ← Back to dashboard
+          ← Back to audit results
         </Link>
+
       </div>
     </main>
   )
