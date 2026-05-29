@@ -3,9 +3,9 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/npm/v/@vouqis/cli?style=flat-square&color=60a5fa" alt="npm version">
+  <img src="https://img.shields.io/npm/v/vouqis?style=flat-square&color=60a5fa" alt="npm version">
   &nbsp;
-  <img src="https://img.shields.io/npm/dm/@vouqis/cli?style=flat-square&color=4ade80" alt="Monthly Downloads">
+  <img src="https://img.shields.io/npm/dm/vouqis?style=flat-square&color=4ade80" alt="Monthly Downloads">
   &nbsp;
   <img src="https://img.shields.io/badge/license-MIT-4ade80?style=flat-square" alt="License">
   &nbsp;
@@ -38,13 +38,13 @@
 <p align="center">
 
 [Why Vouqis?](#-why-vouqis) ·
-[How It Works](#-how-it-works-plain-english) ·
 [Quick Start](#-quick-start) ·
+[What It Tests](#-what-vouqis-tests) ·
+[CI/CD](#%EF%B8%8F-cicd-integration) ·
+[Pricing](#-pricing) ·
+[How It Works](#-how-it-works-plain-english) ·
 [Protected Servers](#-auditing-protected-servers) ·
 [Pro & 90-Day History](#-pro-plan--90-day-history) ·
-[CI/CD](#%EF%B8%8F-cicd-integration) ·
-[What It Tests](#-what-vouqis-tests) ·
-[Pricing](#-pricing) ·
 [FAQ](#-faq)
 
 </p>
@@ -82,26 +82,6 @@ These are documented production failures:
 
 ---
 
-## 💡 How It Works — Plain English
-
-**What is an MCP server?**
-
-It is how AI agents call tools. When Claude searches the web, reads your calendar, or sends a Slack message — it calls an MCP server. The server is the bridge between the AI and the real world.
-
-**What does Vouqis do?**
-
-Think of Vouqis as a building inspector for MCP servers. Before you let an AI agent use a server in production, Vouqis runs 10 real test calls against it and gives you a score from 0 to 100. It checks whether the server handles bad inputs gracefully, responds fast enough, and returns data in the correct format.
-
-**One command. Thirty seconds. Done.**
-
-```bash
-vouqis audit https://mcp.exa.ai/mcp
-```
-
-You get a score, a verdict (APPROVED / RISKY / DO NOT INTEGRATE), and a shareable report link.
-
----
-
 ## 🚀 Quick Start
 
 **Requirements:** Node.js 20 or later · Any MCP server URL
@@ -109,7 +89,7 @@ You get a score, a verdict (APPROVED / RISKY / DO NOT INTEGRATE), and a shareabl
 ### Step 1 — Install
 
 ```bash
-npm install -g @vouqis/cli
+npm install -g vouqis
 ```
 
 ### Step 2 — Run your first audit
@@ -163,6 +143,132 @@ vouqis audit https://your-server.com --json-path ./results.json
 # Quick score only — no dashboard report
 vouqis score https://your-server.com
 ```
+
+---
+
+## 🔬 What Vouqis Tests
+
+Vouqis runs **10 deterministic probes across 5 failure modes**. No LLM calls. No test case authoring. No server-side changes required.
+
+| Probe IDs | Failure Mode | What It Checks |
+|:---|:---|:---|
+| `mjr-01, 02` | **Malformed JSON-RPC** | Does the server reject garbage requests — or silently return `200 OK`? |
+| `mrp-01, 02` | **Missing parameters** | Does the server handle empty / null arguments without hanging or crashing? |
+| `tmo-01, 02` | **Timeout** | Does every tool respond within 5 seconds? |
+| `urs-01, 02` | **Schema compliance** | Does the response match the MCP `content[]` spec with typed items? |
+| `nul-01, 02` | **Empty response** | Does the tool return actual content — not `[]`, `null`, or `""`? |
+
+<details>
+<summary><strong>How each probe works in detail</strong></summary>
+
+<br>
+
+**Malformed JSON-RPC** — Sends two structurally invalid requests directly to the server, bypassing the SDK. Pass = `status >= 400` OR body contains an `error` field. Fail = silent `200 OK`.
+
+**Missing parameters** — Calls every tool with `{}` then `null` arguments. Pass = server responds without hanging. Fail = timeout.
+
+**Timeout** — Calls every tool with minimal valid inputs. Pass = response within 5 seconds.
+
+**Schema compliance** — Inspects `response.content[]` — must be an array where every item has a string `type` field per the MCP spec.
+
+**Empty response** — Content must be non-empty with at least one non-blank text item.
+
+</details>
+
+---
+
+## ⚙️ CI/CD Integration
+
+Gate every deployment on MCP server reliability. The pipeline breaks the moment a server degrades — before users notice.
+
+```yaml
+# .github/workflows/mcp-trust-gate.yml
+name: MCP Trust Gate
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  trust-score:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: npm install -g vouqis
+
+      - name: Audit MCP server
+        run: vouqis audit ${{ vars.MCP_SERVER_URL }} --fail-below 80
+        env:
+          VOUQIS_API_KEY: ${{ secrets.VOUQIS_API_KEY }}
+
+      - name: Upload report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: vouqis-report
+          path: vouqis-report.json
+```
+
+**Auditing a protected server in CI:**
+
+```yaml
+- name: Audit protected MCP server
+  run: |
+    vouqis audit ${{ vars.MCP_SERVER_URL }} \
+      --header "Authorization: Bearer ${{ secrets.MCP_SERVER_TOKEN }}" \
+      --fail-below 80
+  env:
+    VOUQIS_API_KEY: ${{ secrets.VOUQIS_API_KEY }}
+```
+
+**Threshold guide:**
+
+| Flag | When to use |
+|:---|:---|
+| `--fail-below 80` | Standard production gate — requires APPROVED verdict |
+| `--fail-below 50` | Minimum bar — block only DO NOT INTEGRATE servers |
+| `--fail-below 90` | High-reliability: financial, healthcare, customer-facing agents |
+
+---
+
+## 💳 Pricing
+
+| | **Free** | **Pro** | **Team** | **Enterprise** |
+|:---|:---:|:---:|:---:|:---:|
+| **Price** | $0 | **$9/mo** | $99/mo | Custom |
+| CLI runs | Unlimited | Unlimited | Unlimited | Unlimited |
+| Report retention | 30 days | **90 days** | 90 days | Custom |
+| Shareable report URLs | ✓ | ✓ | ✓ | ✓ |
+| Pro API key | — | ✓ | ✓ | ✓ |
+| Continuous monitoring | — | ✓ *(June 2026)* | ✓ | ✓ |
+| Team seats | — | — | 5 seats | Custom |
+| Priority support | — | ✓ | ✓ | ✓ |
+
+<p align="center">
+  <a href="https://www.vouqis.tech/pro" target="_blank">
+    <img src="https://img.shields.io/badge/Go%20Pro-$9%2Fmo%20launch-4ade80?style=for-the-badge" alt="Go Pro" height="40">
+  </a>
+</p>
+
+---
+
+## 💡 How It Works — Plain English
+
+**What is an MCP server?**
+
+It is how AI agents call tools. When Claude searches the web, reads your calendar, or sends a Slack message — it calls an MCP server. The server is the bridge between the AI and the real world.
+
+**What does Vouqis do?**
+
+Think of Vouqis as a building inspector for MCP servers. Before you let an AI agent use a server in production, Vouqis runs 10 real test calls against it and gives you a score from 0 to 100. It checks whether the server handles bad inputs gracefully, responds fast enough, and returns data in the correct format.
+
+**One command. Thirty seconds. Done.**
+
+```bash
+vouqis audit https://mcp.exa.ai/mcp
+```
+
+You get a score, a verdict (APPROVED / RISKY / DO NOT INTEGRATE), and a shareable report link.
 
 ---
 
@@ -310,37 +416,6 @@ env:
 
 ---
 
-## 🔬 What Vouqis Tests
-
-Vouqis runs **10 deterministic probes across 5 failure modes**. No LLM calls. No test case authoring. No server-side changes required.
-
-| Probe IDs | Failure Mode | What It Checks |
-|:---|:---|:---|
-| `mjr-01, 02` | **Malformed JSON-RPC** | Does the server reject garbage requests — or silently return `200 OK`? |
-| `mrp-01, 02` | **Missing parameters** | Does the server handle empty / null arguments without hanging or crashing? |
-| `tmo-01, 02` | **Timeout** | Does every tool respond within 5 seconds? |
-| `urs-01, 02` | **Schema compliance** | Does the response match the MCP `content[]` spec with typed items? |
-| `nul-01, 02` | **Empty response** | Does the tool return actual content — not `[]`, `null`, or `""`? |
-
-<details>
-<summary><strong>How each probe works in detail</strong></summary>
-
-<br>
-
-**Malformed JSON-RPC** — Sends two structurally invalid requests directly to the server, bypassing the SDK. Pass = `status >= 400` OR body contains an `error` field. Fail = silent `200 OK`.
-
-**Missing parameters** — Calls every tool with `{}` then `null` arguments. Pass = server responds without hanging. Fail = timeout.
-
-**Timeout** — Calls every tool with minimal valid inputs. Pass = response within 5 seconds.
-
-**Schema compliance** — Inspects `response.content[]` — must be an array where every item has a string `type` field per the MCP spec.
-
-**Empty response** — Content must be non-empty with at least one non-blank text item.
-
-</details>
-
----
-
 ## 📊 Trust Score Algorithm
 
 Every audit produces a **0–100 Trust Score** from three weighted signals:
@@ -371,60 +446,6 @@ Every audit produces a **0–100 Trust Score** from three weighted signals:
 
 ---
 
-## ⚙️ CI/CD Integration
-
-Gate every deployment on MCP server reliability. The pipeline breaks the moment a server degrades — before users notice.
-
-```yaml
-# .github/workflows/mcp-trust-gate.yml
-name: MCP Trust Gate
-on:
-  pull_request:
-  push:
-    branches: [main]
-
-jobs:
-  trust-score:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - run: npm install -g @vouqis/cli
-
-      - name: Audit MCP server
-        run: vouqis audit ${{ vars.MCP_SERVER_URL }} --fail-below 80
-        env:
-          VOUQIS_API_KEY: ${{ secrets.VOUQIS_API_KEY }}
-
-      - name: Upload report
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: vouqis-report
-          path: vouqis-report.json
-```
-
-**Auditing a protected server in CI:**
-
-```yaml
-- name: Audit protected MCP server
-  run: |
-    vouqis audit ${{ vars.MCP_SERVER_URL }} \
-      --header "Authorization: Bearer ${{ secrets.MCP_SERVER_TOKEN }}" \
-      --fail-below 80
-  env:
-    VOUQIS_API_KEY: ${{ secrets.VOUQIS_API_KEY }}
-```
-
-**Threshold guide:**
-
-| Flag | When to use |
-|:---|:---|
-| `--fail-below 80` | Standard production gate — requires APPROVED verdict |
-| `--fail-below 50` | Minimum bar — block only DO NOT INTEGRATE servers |
-| `--fail-below 90` | High-reliability: financial, healthcare, customer-facing agents |
-
----
-
 ## 📈 Dashboard & Shareable Reports
 
 Every `vouqis audit` produces three outputs simultaneously:
@@ -438,27 +459,6 @@ The shareable URL turns every audit into a vendor conversation:
 > _"Your server scored 92 but failed mjr-02 — it accepted a malformed JSON-RPC request silently. Fix this before we integrate: **https://www.vouqis.tech/report/abc123**"_
 
 Browse all your audit history → **[vouqis.tech](https://www.vouqis.tech)**
-
----
-
-## 💳 Pricing
-
-| | **Free** | **Pro** | **Team** | **Enterprise** |
-|:---|:---:|:---:|:---:|:---:|
-| **Price** | $0 | **$9/mo** | $99/mo | Custom |
-| CLI runs | Unlimited | Unlimited | Unlimited | Unlimited |
-| Report retention | 30 days | **90 days** | 90 days | Custom |
-| Shareable report URLs | ✓ | ✓ | ✓ | ✓ |
-| Pro API key | — | ✓ | ✓ | ✓ |
-| Continuous monitoring | — | ✓ *(June 2026)* | ✓ | ✓ |
-| Team seats | — | — | 5 seats | Custom |
-| Priority support | — | ✓ | ✓ | ✓ |
-
-<p align="center">
-  <a href="https://www.vouqis.tech/pro" target="_blank">
-    <img src="https://img.shields.io/badge/Go%20Pro-$9%2Fmo%20launch-4ade80?style=for-the-badge" alt="Go Pro" height="40">
-  </a>
-</p>
 
 ---
 
