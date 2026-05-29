@@ -139,16 +139,7 @@ export function printProCallout(isPro: boolean, reportUrl?: string): void {
     return
   }
 
-  // Free user upgrade prompt
-  console.log(SEP)
-  console.log(`  ${yellow('⚡ Unlock Pro')} ${dim('— $9/mo · cancel anytime')}`)
-  console.log(SEP)
-  console.log(`  ${dim('[PRO]')}  ${chalk.white('90-day report history')}  ${dim('you get 7 days on free')}`)
-  console.log(`  ${dim('[PRO]')}  ${chalk.white('CI/CD API key')}          ${dim('block deploys on low trust score')}`)
-  console.log(`  ${dim('[PRO]')}  ${chalk.white('--fail-below gate')}      ${dim('fail builds automatically')}`)
-  console.log(`  ${dim('[PRO]')}  ${chalk.white('Private report links')}   ${dim('team-only sharing (coming soon)')}`)
-  console.log('')
-  console.log(`  Set ${chalk.cyan('VOUQIS_API_KEY=<your-key>')} to activate Pro`)
-  console.log(`  Get your key: ${blue(`${DASHBOARD_URL}/pro`)}`)
+  // Free user — single quiet nudge
+  console.log(`  ${dim('Pro: 90-day history + CI gate')}  ${dim('→')}  ${blue(`${DASHBOARD_URL}/pro`)}`)
   console.log('')
 }
