@@ -52,12 +52,12 @@ function scoreBar(score: number): string {
 const PROBE_LABELS: Record<string, string> = {
   'mjr-01': 'Malformed JSON-RPC body',
   'mjr-02': 'Invalid JSON-RPC version',
-  'mis-01': 'Missing method field',
-  'mis-02': 'Missing params field',
-  'tmo-01': 'Slow-response timeout',
-  'tmo-02': 'Hung-connection timeout',
-  'sch-01': 'Wrong param types',
-  'sch-02': 'Extra unknown fields',
+  'mrp-01': 'Empty arguments (stripped)',
+  'mrp-02': 'All arguments set to null',
+  'tmo-01': 'Cold-start response time',
+  'tmo-02': 'Repeat-call response time',
+  'urs-01': 'Response conforms to MCP content-array schema',
+  'urs-02': 'Each content item has a valid type field',
   'nul-01': 'Null tool arguments',
   'nul-02': 'Empty string arguments',
 }
