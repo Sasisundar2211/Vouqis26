@@ -17,10 +17,44 @@
 <p align="center">
   <a href="https://www.vouqis.tech">Dashboard</a> ·
   <a href="https://www.vouqis.tech/pro">Pro — $9/mo</a> ·
+  <a href="https://www.vouqis.tech/enterprise">Enterprise — $499/mo</a> ·
   <a href="https://github.com/Sasisundar2211/Vouqis/issues">Issues</a>
 </p>
 
 ---
+
+## The Problem
+
+HTTP 200 is not success for MCP. Your AI agent called a server, got a 200, logged "success" — and your user saw nothing happen.
+
+These aren't hypotheticals. Every one of these returned 200 OK while the MCP server was broken:
+
+| Incident | Impact |
+|:---|:---|
+| mcp-remote CVE-2025-6514 | CVSS 9.6 RCE — 150M+ npm downloads affected |
+| Smithery path traversal (June 2025) | 3,243 hosted MCP servers exposed, API keys leaked |
+| Asana cross-tenant data leak (May 2025) | Customer data exposed across instances for 2 weeks |
+
+Standard monitoring fires nothing. Uptime is green. Your agent is broken.
+
+---
+
+## Failure Math
+
+A 2026 survey of 100 production MCP servers found the median server passes **71% of tool calls** — with silent empty responses and no errors.
+
+```
+Tool 1 → Tool 2 → Tool 3 → Tool 4 → Tool 5
+  71%  →  50%  →  36%  →  25%  →  18%
+```
+
+At 71% per-tool reliability, a 5-tool agent chain succeeds only **18% of the time**. HTTP stays 200 throughout. Standard monitoring fires nothing.
+
+*Source: Digital Applied — 100 MCP Servers Stress-Tested (April 2026)*
+
+---
+
+## Demo
 
 ```
 $ vouqis audit https://mcp.exa.ai/mcp
@@ -48,21 +82,14 @@ $ vouqis audit https://mcp.exa.ai/mcp
   Report  →  https://www.vouqis.tech/report/exa-abc123
 ```
 
----
+**Install and run:**
 
-## The Problem
+```bash
+npm install -g @vouqis/cli
+vouqis audit https://your-mcp-server.com
+```
 
-Your AI agent called an MCP server. The server returned `200 OK`. The agent logged "success." Your user saw nothing happen.
-
-This is not rare. A 2026 survey of 100 production MCP servers found the median server passes 71% of tool calls — with silent empty responses and no errors. At 71% per-tool reliability, a 5-tool agent chain succeeds only 18% of the time. HTTP stays 200 throughout. Standard monitoring fires nothing.
-
-Three incidents that would have been caught by protocol-layer probing:
-
-| Incident | Impact |
-|:---|:---|
-| mcp-remote CVE-2025-6514 | CVSS 9.6 RCE — 150M+ npm downloads affected |
-| Smithery path traversal (June 2025) | 3,243 hosted MCP servers exposed, API keys leaked |
-| Asana cross-tenant data leak (May 2025) | Customer data exposed across instances for 2 weeks |
+By default the CLI is **fully local** — every run produces a terminal report and a `vouqis-report.json`. Pass `--report` to upload results and get a shareable URL. No login required.
 
 ---
 
@@ -86,56 +113,18 @@ Score = (pass rate × 0.50) + (latency score × 0.30) + (error diversity × 0.20
 
 | Score | Verdict | Action |
 |:---|:---|:---|
-| 80 – 100 | ✅ APPROVED | Safe to integrate |
+| 95 – 100 | ✅ PRODUCTION-READY | Safe for enterprise multi-agent workflows |
+| 80 – 94 | ✅ APPROVED | Safe to integrate |
 | 50 – 79 | ⚠ RISKY | Review failures before production |
 | 0 – 49 | ✗ DO NOT INTEGRATE | Something fundamental is broken |
 
----
-
-## Quick Start
-
-**Requires:** Node.js 20+
-
-```bash
-npm install -g @vouqis/cli
-```
-
-```bash
-# Audit any MCP server
-vouqis audit https://your-mcp-server.com
-
-# Protected server (requires auth)
-vouqis audit https://your-server.com -H "Authorization: Bearer TOKEN"
-
-# CI/CD gate — exit code 1 if score drops below threshold
-vouqis audit https://your-server.com --fail-below 80
-
-# Generate a shareable URL (opt-in)
-vouqis audit https://your-server.com --report
-
-# Score only — no dashboard report
-vouqis score https://your-server.com
-```
-
-**By default the CLI is fully local.** Every run produces a terminal report and a `vouqis-report.json`. Pass `--report` to also upload results and get a shareable URL at `vouqis.tech/report/<id>` — no login required.
+Every JSON report includes a `remediation[]` array — machine-readable fix instructions for each failing probe, keyed to the exact MCP spec section.
 
 ---
 
-## Works With
+## CI/CD Gate
 
-Vouqis connects over JSON-RPC exactly the way an AI agent does. If you have a URL, you can audit it.
-
-**MCP transports:** Streamable HTTP (spec 2025-03-26), SSE fallback (2024-11-05)
-
-**CI systems:** GitHub Actions, GitLab CI, CircleCI, Bitbucket Pipelines, any terminal
-
-**Agent frameworks:** Works against any server built with the MCP SDK, regardless of framework
-
----
-
-## CI/CD Integration
-
-Gate every deployment on server reliability. The pipeline breaks when a server degrades — before users notice.
+Gate every deployment on server reliability. The build fails when a server degrades — before users notice.
 
 ```yaml
 # .github/workflows/mcp-trust-gate.yml
@@ -161,32 +150,38 @@ jobs:
 | `--fail-below 80` | Standard production gate — APPROVED required |
 | `--fail-below 50` | Minimum bar — block only DO NOT INTEGRATE |
 | `--fail-below 90` | High-reliability: finance, healthcare, customer-facing |
+| `--fail-below 95` | Enterprise: PRODUCTION-READY required |
 
-`VOUQIS_API_KEY` is a Pro feature. Free users can run `--fail-below` locally; CI gate persistence requires Pro.
+`VOUQIS_API_KEY` is a Pro feature. Free users can run `--fail-below` locally; CI gate persistence and history require Pro.
 
----
+**SDK auto-block** — refuse to instantiate low-score servers at runtime:
 
-## Dashboard
+```ts
+import { withTrustGuard } from '@vouqis/sdk'
 
-Browse audit history, track score trends, and replay past tool calls at [vouqis.tech](https://www.vouqis.tech). Every report URL is public and shareable — useful for vendor conversations:
-
-> *"Your server scored 92 but failed mjr-02 — it accepted a malformed request silently. Fix this before we integrate: vouqis.tech/report/abc123"*
+// Throws TrustGuardError before first tool call if score < 80
+const client = await withTrustGuard(mcpClient, serverUrl, { minScore: 80 })
+```
 
 ---
 
 ## Pricing
 
-| | Free | Pro | Team |
+| | Free | Pro | Enterprise |
 |:---|:---:|:---:|:---:|
-| Price | $0 | $9/mo | $99/mo |
+| Price | $0 | $9/mo | $499/mo |
 | All 10 probes | ✓ | ✓ | ✓ |
 | Shareable report URLs | ✓ | ✓ | ✓ |
 | Report retention | 30 days | 90 days | 90 days |
 | API key for CI/CD | — | ✓ | ✓ |
 | `--fail-below` CI gate | — | ✓ | ✓ |
-| Team seats | — | — | 5 |
+| Team seats | — | — | Unlimited |
+| SAML 2.0 / OIDC SSO | — | — | ✓ |
+| 99.9% uptime SLA | — | — | ✓ |
+| Security questionnaire | — | — | ✓ |
+| 30-day pilot available | — | — | ✓ |
 
-[Subscribe at vouqis.tech/pro →](https://www.vouqis.tech/pro)
+[Pro — $9/mo →](https://www.vouqis.tech/pro) · [Enterprise — Talk to Sales →](https://www.vouqis.tech/enterprise)
 
 ---
 
@@ -199,7 +194,7 @@ Vouqis is local-first. Here is exactly what leaves your machine on each command:
 | JSON-RPC probe requests | Every run | Your MCP server only |
 | Audit results (score, probe data) | Only with `--report` or `VOUQIS_API_KEY` | `vouqis.tech/api/reports` |
 
-No data is sent to Supabase or any third party. The CLI has zero telemetry. When you pass `--report`, your server URL and probe results go to the Vouqis API to generate a shareable link — nothing else.
+No telemetry. No account required for free tier.
 
 ---
 
@@ -208,18 +203,12 @@ No data is sent to Supabase or any third party. The CLI has zero telemetry. When
 ```bash
 git clone https://github.com/Sasisundar2211/Vouqis.git
 cd Vouqis && npm install
-
-# Run tests
 cd packages/cli && npx vitest run
-
-# Typecheck
 npx tsc --noEmit
 ```
 
 [Open an issue](https://github.com/Sasisundar2211/Vouqis/issues) · [Submit a PR](https://github.com/Sasisundar2211/Vouqis/pulls)
 
 ---
-
-## License
 
 MIT © [Vouqis](https://github.com/Sasisundar2211)
