@@ -114,7 +114,7 @@ export default function ProPage() {
           const vRes = await fetch('/api/razorpay/verify-payment', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify(response),
+            body: JSON.stringify({...response, email}),
           })
           const vData = await vRes.json() as {success?: boolean; error?: string}
           if (!vRes.ok) {
@@ -234,6 +234,9 @@ export default function ProPage() {
               >
                 {loading ? 'Opening checkout…' : 'Start Pro — ₹900/mo'}
               </button>
+              <p className="text-xs text-muted-foreground font-mono text-center">
+                UPI · Net Banking · Indian cards
+              </p>
             </div>
           </div>
 
