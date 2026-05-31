@@ -47,12 +47,6 @@ export default function RootLayout({
               GitHub
             </a>
             <Link
-              href="/dashboard"
-              className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-            >
-              Traces
-            </Link>
-            <Link
               href="/evals"
               className="text-sm text-muted-foreground hover:text-foreground transition-colors"
             >
