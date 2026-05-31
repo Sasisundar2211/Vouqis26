@@ -18,6 +18,7 @@ interface RazorpayOptions {
   order_id: string
   prefill?: {email?: string; method?: string}
   theme?: {color?: string}
+  config?: {display?: {hide?: {method: string}[]; preferences?: {show_default_blocks?: boolean}}}
   handler: (response: RazorpaySuccessResponse) => void
   modal?: {ondismiss?: () => void}
 }
@@ -114,6 +115,7 @@ export default function ProPage() {
       description: 'Pro Plan — ₹900/month',
       order_id: order.order_id,
       prefill: {email, method: 'upi'},
+      config: {display: {hide: [{method: 'card'}], preferences: {show_default_blocks: true}}},
       theme: {color: '#000000'},
       handler: async (response: RazorpaySuccessResponse) => {
         try {
