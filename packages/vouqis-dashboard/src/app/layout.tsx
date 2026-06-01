@@ -37,6 +37,12 @@ export default function RootLayout({
             >
               Vouqis
             </Link>
+            <Link
+              href="/proxy"
+              className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+            >
+              Proxy
+            </Link>
             <a
               href="https://github.com/Sasisundar2211/Vouqis"
               target="_blank"
