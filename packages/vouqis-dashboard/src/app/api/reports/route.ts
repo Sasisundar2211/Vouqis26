@@ -33,6 +33,7 @@ export async function POST(request: NextRequest) {
   const rawKey = request.headers.get('x-vouqis-api-key')
   const freeExpiryDays = parseInt(process.env.NEXT_PUBLIC_FREE_REPORT_EXPIRY_DAYS ?? '7')
   let expiryDays = freeExpiryDays
+  let validatedApiKey: string | null = null
 
   if (rawKey) {
     try {
@@ -50,12 +51,10 @@ export async function POST(request: NextRequest) {
       if (!lookupError && sub) {
         const proExpiryDays = parseInt(process.env.NEXT_PUBLIC_PRO_REPORT_HISTORY_DAYS ?? '90')
         expiryDays = proExpiryDays
-        console.log('[api/reports] Pro key validated, setting 90d expiry')
+        validatedApiKey = rawKey
       }
       // If lookup errors or finds nothing: silent fallback to free tier
-      // Do NOT block or error the report creation
     } catch {
-      // DB error during lookup: degrade gracefully to free tier
       console.error('[api/reports] api_key lookup failed, falling back to free tier')
     }
   }
@@ -75,6 +74,7 @@ export async function POST(request: NextRequest) {
       top_failures: topFailures,
       probe_results: probeResults,
       expires_at: expiresAt.toISOString(),
+      user_api_key: validatedApiKey,
     })
     .select('id')
     .single()

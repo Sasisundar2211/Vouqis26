@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import Link from "next/link";
 import {PlanBadge} from "@/components/PlanBadge";
+import {SignOutButton} from "@/components/SignOutButton";
+import {createSupabaseServerClient} from "@/lib/supabase-server";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -19,11 +21,14 @@ export const metadata: Metadata = {
   description: "Score, monitor, and replay MCP server tool calls",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const supabase = await createSupabaseServerClient()
+  const { data: { user } } = await supabase.auth.getUser()
+
   return (
     <html
       lang="en"
@@ -52,7 +57,24 @@ export default function RootLayout({
             >
               Audits
             </Link>
-            <PlanBadge />
+            <div className="ml-auto flex items-center gap-4">
+              {user ? (
+                <>
+                  <span className="text-xs text-muted-foreground font-mono hidden sm:inline truncate max-w-[160px]">
+                    {user.email}
+                  </span>
+                  <SignOutButton />
+                </>
+              ) : (
+                <Link
+                  href="/login"
+                  className="text-xs text-muted-foreground font-mono hover:text-foreground transition-colors"
+                >
+                  Sign in
+                </Link>
+              )}
+              <PlanBadge />
+            </div>
           </nav>
         </header>
         {children}

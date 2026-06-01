@@ -1,8 +1,9 @@
 export const dynamic = 'force-dynamic'
 
 import Link from 'next/link'
-import {notFound} from 'next/navigation'
-import {supabase} from '@/lib/supabase'
+import {notFound, redirect} from 'next/navigation'
+import {createSupabaseServerClient} from '@/lib/supabase-server'
+import {supabaseAdmin} from '@/lib/supabase-admin'
 import {Card, CardContent, CardHeader, CardTitle} from '@/components/ui/card'
 import {Badge} from '@/components/ui/badge'
 import {buttonVariants} from '@/components/ui/button'
@@ -116,13 +117,32 @@ export default async function EvalDetailPage({
 }) {
   const {id} = await params
 
-  const {data: run, error} = await supabase
+  // Get authenticated user (guaranteed by middleware)
+  const supabase = await createSupabaseServerClient()
+  const {data: {user}} = await supabase.auth.getUser()
+
+  // Look up user's api_key
+  const {data: sub} = await supabaseAdmin
+    .from('subscriptions')
+    .select('api_key')
+    .eq('email', user!.email!)
+    .maybeSingle()
+
+  const {data: run} = await supabaseAdmin
     .from('audit_reports')
     .select('*')
     .eq('id', id)
     .single()
 
-  if (error || !run) notFound()
+  if (!run) notFound()
+
+  // Anonymous reports (no owner) are public — send to the public report page
+  if (run.user_api_key === null) {
+    redirect(`/report/${id}`)
+  }
+
+  // Report belongs to a different user
+  if (run.user_api_key !== sub?.api_key) notFound()
 
   const total = run.pass_count + run.fail_count
   const passRate = total > 0 ? Math.round((run.pass_count / total) * 100) : 0

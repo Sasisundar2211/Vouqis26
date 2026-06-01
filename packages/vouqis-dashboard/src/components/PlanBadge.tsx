@@ -14,16 +14,19 @@ export function PlanBadge() {
 
   if (plan === 'pro') {
     return (
-      <span className="ml-auto text-xs font-mono font-medium px-2 py-0.5 rounded border border-green-600/40 text-green-600">
+      <Link
+        href="/pro"
+        className="text-xs font-mono font-medium px-2 py-0.5 rounded border border-green-600/40 text-green-600 hover:opacity-80 transition-opacity"
+      >
         Pro
-      </span>
+      </Link>
     )
   }
 
   return (
     <Link
       href="/pro"
-      className="ml-auto text-xs text-muted-foreground font-mono px-2 py-0.5 rounded border border-border hover:text-foreground hover:border-foreground/30 transition-colors"
+      className="text-xs text-muted-foreground font-mono px-2 py-0.5 rounded border border-border hover:text-foreground hover:border-foreground/30 transition-colors"
     >
       Free
     </Link>
